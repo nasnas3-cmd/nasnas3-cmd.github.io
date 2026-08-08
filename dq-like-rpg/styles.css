@@ -1,0 +1,793 @@
+/* ==========================================================================
+   星霜のフロンティア - スタイルシート
+   DQ風「白枠・黒背景・等幅フォント」のUIを基本方針とする。
+   ========================================================================== */
+
+/* "DQFont" は外部フォントファイルを同梱していないため実体は存在しない。
+   local() 参照のみのため常にフォールバック(等幅な日本語フォント)に落ちる。
+   半角英数字と全角文字の字幅ズレを避けるため、フォールバック先も等幅ベースの
+   ゴシック体に固定し、汎用 monospace には頼らない。 */
+@font-face {
+  font-family: "DQFont";
+  src: local("MS Gothic"), local("Yu Gothic"), local("Meiryo");
+}
+
+:root {
+  --dq-bg: #000000;
+  --dq-border: #ffffff;
+  --dq-border-inner: #4a4a8a;
+  --dq-text: #ffffff;
+  --dq-accent: #ffe15a;
+  --dq-hp: #4caf50;
+  --dq-hp-low: #e53935;
+  --dq-mp: #4aa3ff;
+  --dq-cursor: #ffe15a;
+  --dq-disabled: #777777;
+  --dq-shop-highlight: #2a2a5a;
+  --dq-warn: #ff9f1c;
+  --dq-danger: #ff4d4d;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html, body {
+  margin: 0;
+  padding: 0;
+  width: 100%;
+  height: 100%;
+  background: #111;
+  color: var(--dq-text);
+  font-family: "DQFont", "MS Gothic", "Yu Gothic", "Meiryo", monospace;
+  overflow: hidden;
+  user-select: none;
+  /* 等幅フォントの文字潰れ対策。白枠黒背景の高コントラスト画面では
+     アンチエイリアスが弱いと文字が細く読みにくくなるため補正する。 */
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+  letter-spacing: 0.02em;
+}
+
+#game-root {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  max-width: 800px;
+  max-height: 600px;
+  margin: 0 auto;
+  background: #000;
+  overflow: hidden;
+}
+
+/* ==========================================================================
+   共通: 画面(シーン)切り替え
+   ========================================================================== */
+
+.screen {
+  position: absolute;
+  inset: 0;
+  display: none;
+}
+
+.screen.active {
+  display: block;
+}
+
+/* ==========================================================================
+   タイトル画面
+   ========================================================================== */
+
+#screen-title {
+  display: none;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  background: radial-gradient(ellipse at center, #1a1a3a 0%, #000000 80%);
+  text-align: center;
+}
+
+#screen-title.active {
+  display: flex;
+}
+
+.title-logo {
+  font-size: 2.2rem;
+  letter-spacing: 0.2em;
+  color: var(--dq-accent);
+  text-shadow: 2px 2px 0 #000, 0 0 12px rgba(255, 225, 90, 0.6);
+  margin-bottom: 0.2em;
+}
+
+.title-sub {
+  font-size: 0.9rem;
+  color: #cfcfcf;
+  margin-bottom: 3rem;
+}
+
+.title-hero-visual {
+  position: relative;
+  width: min(92vw, 560px);
+  height: 220px;
+  margin: -1.5rem auto 1.25rem;
+  overflow: hidden;
+  border: 3px solid rgba(255,255,255,0.75);
+  border-radius: 12px;
+  background:
+    linear-gradient(to bottom, rgba(79,176,239,0.95) 0 55%, rgba(108,174,93,0.95) 56% 100%);
+  box-shadow: 0 0 24px rgba(74,163,255,0.35), inset 0 -34px 0 rgba(45,104,51,0.28);
+}
+
+.title-hero-image {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: center 45%;
+}
+
+.title-sun {
+  position: absolute;
+  width: 70px;
+  height: 70px;
+  top: 18px;
+  right: 64px;
+  border-radius: 50%;
+  background: rgba(255,240,142,0.9);
+  box-shadow: 0 0 24px rgba(255,240,142,0.7);
+}
+
+.title-castle {
+  position: absolute;
+  bottom: 44px;
+  width: 82px;
+  height: 92px;
+  background: #e8ddc5;
+  border: 3px solid rgba(80,72,70,0.7);
+  opacity: 0.9;
+}
+
+.title-castle::before,
+.title-castle::after {
+  content: "";
+  position: absolute;
+  bottom: 0;
+  width: 28px;
+  height: 128px;
+  background: #f0e7d3;
+  border: 3px solid rgba(80,72,70,0.7);
+}
+
+.title-castle::before { left: -22px; }
+.title-castle::after { right: -22px; }
+.title-castle-left { left: 72px; transform: scale(0.72); transform-origin: bottom; }
+.title-castle-right { right: 92px; transform: scale(0.58); transform-origin: bottom; }
+
+.title-hero-visual .hero-sprite {
+  position: absolute;
+  left: 50%;
+  bottom: 16px;
+  width: 170px;
+  height: 170px;
+  z-index: 3;
+  transform: translateX(-50%);
+  transform-origin: bottom center;
+  --body-color: #ffe066;
+  --accent-color: #2a5ad0;
+  --skin-color: #ffe066;
+  --hair-color: #ff9a1f;
+  pointer-events: none;
+}
+
+.title-hero-sign {
+  position: absolute;
+  right: 18px;
+  bottom: 26px;
+  z-index: 4;
+  padding: 7px 12px;
+  color: #4a2b16;
+  background: #c99555;
+  border: 3px solid #704522;
+  border-radius: 4px;
+  font-size: 0.85rem;
+  font-weight: bold;
+  line-height: 1.25;
+  transform: rotate(-3deg);
+}
+
+.title-menu {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  width: 260px;
+}
+
+.title-name-input {
+  margin-top: 2rem;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.title-name-input input {
+  background: #000;
+  border: 3px solid var(--dq-border);
+  color: var(--dq-text);
+  font-family: inherit;
+  font-size: 1rem;
+  padding: 0.4em 0.6em;
+  text-align: center;
+  width: 220px;
+}
+
+.hidden {
+  display: none !important;
+}
+
+/* ==========================================================================
+   DQ風ウィンドウ(白枠・黒背景・二重線)基本クラス
+   ========================================================================== */
+
+.dq-window {
+  position: absolute;
+  background: #000000;
+  border: 4px solid var(--dq-border);
+  border-radius: 6px;
+  box-shadow:
+    inset 0 0 0 2px #000,
+    inset 0 0 0 3px var(--dq-border-inner),
+    0 4px 14px rgba(0, 0, 0, 0.65);
+  padding: 12px 16px;
+  z-index: 50;
+  line-height: 1.5;
+}
+
+/* ウィンドウ間の重なり順を明示的なレイヤーとして分離する。
+   以前は全ウィンドウが z-index:50 で衝突しており、装備選択メニュー表示中に
+   ステータス画面をJSでhiddenにする回避策(ui.js openEquipMenu)が必要だった。
+   ここで層を分けることで、そのようなDOM操作なしに正しい重なり順を保証する。 */
+.status-window { z-index: 40; }
+.shop-window,
+.church-window { z-index: 45; }
+.command-window { z-index: 50; }
+.message-window { z-index: 55; }
+
+.dq-command-item {
+  display: block;
+  width: 100%;
+  background: transparent;
+  border: none;
+  color: var(--dq-text);
+  font-family: inherit;
+  font-size: 1rem;
+  text-align: left;
+  padding: 0.35em 0.6em;
+  cursor: pointer;
+  border-radius: 3px;
+}
+
+.dq-command-item::before {
+  content: "  ";
+}
+
+.dq-command-item.selected {
+  background: var(--dq-shop-highlight);
+}
+
+.dq-command-item.selected::before {
+  content: "▶ ";
+  color: var(--dq-cursor);
+}
+
+.dq-command-item:disabled {
+  color: var(--dq-disabled);
+  cursor: default;
+}
+
+/* ==========================================================================
+   メッセージウィンドウ
+   ========================================================================== */
+
+.message-window {
+  left: 5%;
+  right: 5%;
+  bottom: 4%;
+  min-height: 96px;
+  font-size: 1rem;
+  line-height: 1.6em;
+}
+
+.message-text {
+  margin: 0;
+  white-space: pre-wrap;
+}
+
+.message-cursor {
+  position: absolute;
+  right: 16px;
+  bottom: 8px;
+  color: var(--dq-cursor);
+  animation: dq-blink 0.8s infinite steps(2);
+}
+
+@keyframes dq-blink {
+  0%, 49% { opacity: 1; }
+  50%, 100% { opacity: 0; }
+}
+
+/* ==========================================================================
+   コマンドウィンドウ(戦闘/フィールド共通)
+   ========================================================================== */
+
+.command-window {
+  right: 5%;
+  bottom: 4%;
+  min-width: 180px;
+}
+
+/* 戦闘時は画面下部のパーティステータス欄と重ならないよう上へ退避する。 */
+#screen-battle.active ~ .command-window {
+  bottom: 18%;
+}
+
+.command-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.command-title {
+  color: var(--dq-accent);
+  margin: 0 0 0.45em;
+  padding: 0 0.6em 0.35em;
+  border-bottom: 2px solid var(--dq-border-inner);
+  white-space: nowrap;
+}
+
+/* ==========================================================================
+   ステータスウィンドウ
+   ========================================================================== */
+
+.status-window {
+  left: 8%;
+  right: 8%;
+  top: 8%;
+  bottom: 8%;
+  overflow-y: auto;
+}
+
+.status-content table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.9rem;
+}
+
+.status-content th,
+.status-content td {
+  text-align: left;
+  padding: 0.25em 0.5em;
+  border-bottom: 1px solid var(--dq-border-inner);
+}
+
+.status-stat-bonus {
+  color: var(--dq-accent);
+  font-size: 0.85em;
+}
+
+.status-member-block {
+  margin-bottom: 1em;
+}
+
+.status-member-name {
+  color: var(--dq-accent);
+  font-size: 1.05rem;
+}
+
+.status-equip-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  margin-top: 0.4em;
+}
+
+.status-equip-btn {
+  font-size: 0.75rem;
+  padding: 3px 6px;
+}
+
+/* ==========================================================================
+   HP/MPバー
+   ========================================================================== */
+
+.stat-bar-row {
+  display: flex;
+  align-items: center;
+  gap: 0.4em;
+  font-size: 0.85rem;
+  margin: 2px 0;
+}
+
+.stat-bar-label {
+  width: 2.4em;
+  color: #cfcfcf;
+}
+
+.stat-bar-track {
+  position: relative;
+  flex: 1 1 auto;
+  /* 戦闘カードのように横幅が狭い親要素でも、ラベル/数値に押し潰されて
+     ゲージ帯が見えなくなる(width:0近くまで縮む)ことがあったため、
+     最低限の視認幅を確保する。 */
+  min-width: 24px;
+  height: 10px;
+  background: #222;
+  border: 1px solid var(--dq-border);
+}
+
+.stat-bar-fill {
+  height: 100%;
+  background: var(--dq-hp);
+}
+
+.stat-bar-fill.mp {
+  background: var(--dq-mp);
+}
+
+.stat-bar-fill.low {
+  background: var(--dq-hp-low);
+}
+
+.stat-bar-value {
+  width: 4.4em;
+  text-align: right;
+  font-size: 0.8rem;
+}
+
+/* HP残量による状態色。20%以下は橙、戦闘不能(HP0)は赤。
+   ステータス窓(.status-member-block)・戦闘中カード(.battle-member-card)の
+   どちらに付いても、名前・数値・ゲージラベルをまとめて着色する。 */
+.status-member-block.cond-low .status-member-name,
+.status-member-block.cond-low .stat-bar-value,
+.status-member-block.cond-low .stat-bar-label,
+.battle-member-card.cond-low .battle-member-name,
+.battle-member-card.cond-low .stat-bar-value,
+.battle-member-card.cond-low .stat-bar-label,
+.stat-bar-row.cond-low .stat-bar-value,
+.stat-bar-row.cond-low .stat-bar-label {
+  color: var(--dq-warn);
+}
+
+.status-member-block.cond-down .status-member-name,
+.status-member-block.cond-down .stat-bar-value,
+.status-member-block.cond-down .stat-bar-label,
+.battle-member-card.cond-down .battle-member-name,
+.battle-member-card.cond-down .stat-bar-value,
+.battle-member-card.cond-down .stat-bar-label,
+.stat-bar-row.cond-down .stat-bar-value,
+.stat-bar-row.cond-down .stat-bar-label {
+  color: var(--dq-danger);
+}
+
+.stat-bar-row.cond-low .stat-bar-track {
+  border-color: var(--dq-warn);
+}
+
+.stat-bar-row.cond-down .stat-bar-track {
+  border-color: var(--dq-danger);
+}
+
+/* ==========================================================================
+   ショップウィンドウ
+   ========================================================================== */
+
+.shop-window {
+  left: 8%;
+  right: 8%;
+  top: 10%;
+  bottom: 10%;
+  display: flex;
+  flex-direction: column;
+}
+
+.shop-header {
+  font-size: 1.05rem;
+  color: var(--dq-accent);
+  border-bottom: 2px solid var(--dq-border-inner);
+  padding-bottom: 0.4em;
+  margin-bottom: 0.4em;
+}
+
+.shop-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  flex: 1;
+  overflow-y: auto;
+}
+
+.shop-list li {
+  display: flex;
+  justify-content: space-between;
+  padding: 0.35em 0.4em;
+  cursor: pointer;
+  border-radius: 3px;
+}
+
+.shop-list li:hover,
+.shop-list li.selected {
+  background: var(--dq-shop-highlight);
+}
+
+.shop-list li .item-price {
+  color: var(--dq-accent);
+}
+
+.shop-footer {
+  border-top: 2px solid var(--dq-border-inner);
+  padding-top: 0.4em;
+  margin-top: 0.4em;
+  font-size: 0.9rem;
+  color: #cfcfcf;
+}
+
+/* ==========================================================================
+   教会ウィンドウ
+   ========================================================================== */
+
+.church-window {
+  left: 10%;
+  right: 10%;
+  top: 12%;
+  bottom: 12%;
+}
+
+/* ==========================================================================
+   マップシーン(フィールド/町/ダンジョン)
+   ========================================================================== */
+
+#screen-map {
+  background: #000;
+}
+
+.map-viewport {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #000;
+}
+
+.map-canvas-wrap {
+  position: relative;
+  width: 512px;
+  height: 512px;
+  flex: 0 0 512px;
+}
+
+#canvas-map, .map-effects-layer, .hero-sprite-layer {
+  position: absolute;
+  inset: 0;
+  width: 512px;
+  height: 512px;
+}
+
+#canvas-map, .map-effects-layer {
+  image-rendering: pixelated;
+  background: #000;
+  border: 0;
+}
+
+.hero-sprite-layer,
+.map-effects-layer { pointer-events: none; }
+.hero-sprite-layer { z-index: 1; }
+.map-effects-layer { z-index: 2; background: transparent; }
+.hero-sprite {
+  position: absolute;
+  width: 32px;
+  height: 32px;
+  overflow: visible;
+  transform: translate3d(-32px, -32px, 0);
+  --body-color: #3aa050;
+  --accent-color: #cccccc;
+  --skin-color: #f5d6a8;
+  --hair-color: #2a1a10;
+}
+.hero-shadow ellipse { fill: rgba(0, 0, 0, 0.25); }.hero-body { fill: var(--body-color); }.hero-head { fill: var(--skin-color); }.hero-hair { fill: var(--hair-color); }.hero-face, .hero-chick-eye { fill: #202020; }.hero-legs rect { fill: #332218; }.hero-equip, .hero-chick-wing, .hero-chick-tuft { fill: var(--accent-color); }.hero-equip-rod rect, .hero-equip-staff rect { fill: #5a3a20; }.hero-equip-sword rect { fill: #8a6a2a; }.hero-chick-body, .hero-chick-head { fill: #ffe066; }.hero-chick-legs rect, .hero-chick-beak { fill: #e08a1a; }.hero-chick-wing { fill: #f5c53a; }
+.hero-chick, .hero-equip { display: none; }.hero-sprite.is-chick .hero-normal { display: none; }.hero-sprite.is-chick .hero-chick { display: inline; }.hero-sprite.equip-sword .hero-equip-sword, .hero-sprite.equip-axe .hero-equip-axe, .hero-sprite.equip-rod .hero-equip-rod, .hero-sprite.equip-staff .hero-equip-staff, .hero-sprite.equip-bag .hero-equip-bag { display: inline; }
+.hero-hat { display: none; fill: var(--hat-color, #3a5a8a); }
+.hero-sprite.has-hat .hero-hat { display: inline; }
+.hero-sprite.has-hat .hero-hair { display: none; }
+.hero-sprite.facing-up .hero-face { transform: translateY(-3px); }.hero-sprite.facing-left .hero-face { transform: translateX(-3px); }.hero-sprite.facing-right .hero-face { transform: translateX(3px); }.hero-sprite.facing-left .hero-normal, .hero-sprite.facing-left .hero-chick { transform: scaleX(-1); transform-origin: 16px 16px; }.hero-sprite.is-walking .hero-normal, .hero-sprite.is-walking .hero-chick { animation: hero-walk-bob 180ms steps(2, end) infinite; transform-origin: 16px 24px; }.hero-sprite.is-walking .hero-legs, .hero-sprite.is-walking .hero-chick-legs { animation: hero-walk-legs 180ms steps(2, end) infinite; transform-origin: 16px 24px; }.hero-sprite.is-cutscene { visibility: hidden; }
+@keyframes hero-walk-bob { 50% { transform: translateY(-1px); } } @keyframes hero-walk-legs { 50% { transform: translateX(2px); } }
+
+.hud-top {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  display: flex;
+  justify-content: flex-start;
+  padding: 6px 12px;
+  font-size: 0.85rem;
+  background: linear-gradient(to bottom, rgba(0,0,0,0.85), rgba(0,0,0,0));
+  color: #fff;
+  pointer-events: none;
+  z-index: 10;
+}
+
+#hud-gold {
+  margin-left: 8px;
+}
+
+/* ==========================================================================
+   戦闘シーン
+   ========================================================================== */
+
+#screen-battle {
+  background: #000;
+}
+
+.battle-viewport {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 58%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: linear-gradient(to bottom, #14142e 0%, #000000 100%);
+}
+
+#canvas-battle {
+  image-rendering: pixelated;
+}
+
+.battle-party-status {
+  position: absolute;
+  left: 5%;
+  right: 5%;
+  bottom: 4%;
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 8px;
+  z-index: 20;
+}
+
+.battle-member-card {
+  min-width: 0;
+  overflow: hidden;
+  border: 3px solid var(--dq-border);
+  border-radius: 4px;
+  background: #000;
+  padding: 6px 8px;
+  font-size: 0.8rem;
+  box-shadow:
+    inset 0 0 0 2px #000,
+    inset 0 0 0 3px var(--dq-border-inner),
+    0 2px 8px rgba(0, 0, 0, 0.5);
+}
+
+.battle-member-card.dead {
+  opacity: 0.5;
+}
+
+.battle-member-name {
+  color: var(--dq-accent);
+  font-size: 0.85rem;
+  margin-bottom: 2px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.battle-member-status {
+  color: var(--dq-warn);
+  font-size: 0.72rem;
+  line-height: 1.1;
+}
+
+/* ==========================================================================
+   メニューボタン(全体メニュー起動用)
+   ========================================================================== */
+
+.menu-open-btn {
+  position: static;
+  margin-left: auto;
+  z-index: 30;
+  background: #000;
+  color: #fff;
+  border: 2px solid var(--dq-border);
+  border-radius: 4px;
+  font-family: inherit;
+  font-size: 0.8rem;
+  padding: 4px 10px;
+  cursor: pointer;
+  pointer-events: auto;
+}
+
+/* ==========================================================================
+   エンディング画面
+   ========================================================================== */
+
+#screen-ending {
+  display: none;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  background: radial-gradient(ellipse at center, #1a1a3a 0%, #000000 80%);
+  text-align: center;
+  padding: 24px;
+}
+
+#screen-ending.active {
+  display: flex;
+}
+
+.ending-content h2 {
+  color: var(--dq-accent);
+  letter-spacing: 0.15em;
+  margin-bottom: 1em;
+}
+
+.ending-content p {
+  max-width: 34em;
+  line-height: 1.8;
+  margin: 0 auto 1em;
+}
+
+.ending-credit {
+  margin-top: 2em;
+  color: var(--dq-accent);
+  letter-spacing: 0.3em;
+}
+
+.ending-action {
+  display: block;
+  margin: 1.5em auto 0;
+  padding: 0.55em 1.1em;
+  background: #000;
+  border: 2px solid var(--dq-border);
+  color: var(--dq-text);
+  font-family: inherit;
+  font-size: 1rem;
+  cursor: pointer;
+}
+
+.ending-action:hover,
+.ending-action:focus {
+  color: var(--dq-accent);
+  border-color: var(--dq-accent);
+}
+
+/* ==========================================================================
+   レスポンシブ(スマホ幅)
+   ========================================================================== */
+
+@media (max-width: 480px) {
+  .title-logo {
+    font-size: 1.5rem;
+  }
+  .dq-window {
+    padding: 8px 10px;
+    font-size: 0.9rem;
+  }
+  .battle-party-status {
+    grid-template-columns: repeat(2, 1fr);
+  }
+  .title-hero-visual {
+    height: 180px;
+  }
+  .title-hero-visual .hero-sprite {
+    transform: translateX(-50%);
+  }
+  .title-castle-left { left: 44px; }
+  .title-castle-right { right: 44px; }
+  .title-hero-sign {
+    right: 8px;
+    bottom: 14px;
+    font-size: 0.7rem;
+  }
+}

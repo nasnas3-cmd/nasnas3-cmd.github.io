@@ -1,0 +1,109 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>ひよこ勇者よよよーの大冒険</title>
+<link rel="stylesheet" href="styles.css">
+</head>
+<body>
+<div id="game-root">
+
+  <!-- タイトル画面 -->
+  <section id="screen-title" class="screen active">
+    <h1 class="title-logo">ひよこ勇者よよよーの大冒険</h1>
+    <p class="title-sub">～シェアハウスの終わらぬ黄昏を払うもの～</p>
+    <div class="title-hero-visual">
+      <img id="title-hero-image" class="title-hero-image" src="hiyoko.png" alt="剣と盾を持つひよこ勇者よよよー">
+    </div>
+    <div class="title-menu">
+      <button id="btn-new-game" class="dq-command-item" data-action="new-game">はじめから</button>
+      <button id="btn-continue" class="dq-command-item" data-action="continue" disabled>つづきから</button>
+    </div>
+    <div id="title-name-input" class="title-name-input hidden">
+      <p>契約監査人の　なまえを　いれてください</p>
+      <input type="text" id="hero-name-field" maxlength="6" autocomplete="off">
+      <button id="btn-name-confirm" class="dq-command-item">けってい</button>
+    </div>
+  </section>
+
+  <!-- フィールド/町/ダンジョン共通シーン -->
+  <section id="screen-map" class="screen">
+    <div class="map-viewport">
+      <div class="map-canvas-wrap">
+        <canvas id="canvas-map" width="512" height="512"></canvas>
+        <div id="npc-sprite-layer" class="hero-sprite-layer" aria-hidden="true"></div>
+        <div id="hero-sprite-layer" class="hero-sprite-layer" aria-hidden="true">
+          <svg id="follower-sprite-1" class="hero-sprite hidden" viewBox="0 0 32 32" role="presentation"></svg>
+          <svg id="follower-sprite-2" class="hero-sprite hidden" viewBox="0 0 32 32" role="presentation"></svg>
+          <svg id="follower-sprite-3" class="hero-sprite hidden" viewBox="0 0 32 32" role="presentation"></svg>
+          <svg id="hero-sprite-svg" class="hero-sprite facing-down" viewBox="0 0 32 32" role="presentation"></svg>
+        </div>
+        <canvas id="canvas-map-effects" class="map-effects-layer" width="512" height="512" aria-hidden="true"></canvas>
+      </div>
+    </div>
+    <div id="hud-top" class="hud-top">
+      <span id="hud-location">-</span>
+      <button id="btn-menu-open" class="menu-open-btn hidden">メニュー</button>
+      <span id="hud-gold">所持金: 0 G</span>
+    </div>
+  </section>
+
+  <!-- 戦闘シーン -->
+  <section id="screen-battle" class="screen">
+    <div class="battle-viewport">
+      <canvas id="canvas-battle" width="512" height="300"></canvas>
+    </div>
+    <div id="battle-party-status" class="battle-party-status"></div>
+  </section>
+
+  <!-- エンディング画面 -->
+  <section id="screen-ending" class="screen">
+    <div id="ending-content" class="ending-content"></div>
+  </section>
+
+  <!-- 共通メッセージウィンドウ -->
+  <div id="message-window" class="dq-window message-window hidden">
+    <p id="message-text" class="message-text"></p>
+    <div id="message-cursor" class="message-cursor hidden">▼</div>
+  </div>
+
+  <!-- 共通コマンド/サブメニューウィンドウ -->
+  <div id="command-window" class="dq-window command-window hidden">
+    <ul id="command-list" class="command-list"></ul>
+  </div>
+
+  <!-- ステータスウィンドウ -->
+  <div id="status-window" class="dq-window status-window hidden">
+    <div id="status-content" class="status-content"></div>
+  </div>
+
+  <!-- ショップウィンドウ -->
+  <div id="shop-window" class="dq-window shop-window hidden">
+    <div id="shop-header" class="shop-header"></div>
+    <ul id="shop-list" class="shop-list"></ul>
+    <div id="shop-footer" class="shop-footer"></div>
+  </div>
+
+  <!-- 教会ウィンドウ -->
+  <div id="church-window" class="dq-window church-window hidden">
+    <div id="church-content" class="church-content"></div>
+  </div>
+
+  <!-- 宿屋ウィンドウ -->
+  <div id="inn-window" class="dq-window church-window hidden">
+    <div id="inn-content" class="church-content"></div>
+  </div>
+
+</div>
+
+<!-- スクリプト読み込み順: audio → data → engine → gfx → map → battle → ui -->
+<script src="audio.js"></script>
+<script src="data.js"></script>
+<script src="engine.js"></script>
+<script src="gfx.js"></script>
+<script src="map.js"></script>
+<script src="battle.js"></script>
+<script src="ui.js"></script>
+</body>
+</html>
