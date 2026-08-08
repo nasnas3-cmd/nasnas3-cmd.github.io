@@ -724,7 +724,7 @@
       "#.#.######.#.#",
       "#.#.#....#.#.#",
       "#...#.9......#",
-      "#.#.#L.D.#.#.#",
+      "#.#.#.LD.#.#.#",
       "#.#.#....#.#.#",
       "#.#.######.#.#",
       "#.#........#.#",
@@ -1009,7 +1009,7 @@
         { fromX: 1, fromY: 7, toMapId: "milesta", toX: 5, toY: 8 },
         { fromX: 14, fromY: 7, toMapId: "farnheim", toX: 6, toY: 10 },
         { fromX: 7, fromY: 3, toMapId: "kareidoRuins_f1", toX: 1, toY: 12 },
-        { fromX: 8, fromY: 12, toMapId: "varenPlain", toX: 12, toY: 8 }
+        { fromX: 8, fromY: 12, toMapId: "varenPlain", toX: 11, toY: 7 }
       ],
       npcs: []
     },
@@ -1085,10 +1085,18 @@
       areaId: "kareidoRuins",
       warps: [
         { fromX: 1, fromY: 11, toMapId: "kareidoRuins_f1", toX: 12, toY: 2 },
-        { fromX: 7, fromY: 6, toMapId: "kareidoRuins_f3", toX: 1, toY: 12 }
+        {
+          fromX: 7,
+          fromY: 7,
+          toMapId: "kareidoRuins_f3",
+          toX: 1,
+          toY: 12,
+          requiresOpenedDoor: { x: 6, y: 7 },
+          message: "中央の扉を　古びた鍵で　開けると　先へ進める！"
+        }
       ],
       lockedDoors: [
-        { x: 5, y: 6, keyItemId: "kareidoRuinsKey", message: "古びた鍵で　扉を　開けた！" }
+        { x: 6, y: 7, keyItemId: "kareidoRuinsKey", message: "古びた鍵で　中央の扉を　開けた！" }
       ],
       npcs: [],
       chests: [{ x: 6, y: 6, itemId: "doukenTsurugi", count: 1 }]
@@ -1574,6 +1582,21 @@
     },
   };
 
+  // シェアハウス台帳との接続。専用データモジュールの正本を、
+  // 既存データと同じ読み取り専用APIとして公開する。
+  const SHARE_HOUSE_CONTENT = (window.RPG.shareHouseContentCatalog || []).map(function (entry) {
+    return Object.assign({}, entry);
+  });
+  const SHARE_HOUSE_CONTENT_BY_CATEGORY = SHARE_HOUSE_CONTENT.reduce(function (groups, entry) {
+    groups[entry.category] = groups[entry.category] || [];
+    groups[entry.category].push(entry.id);
+    return groups;
+  }, {});
+  MANAGEMENT_CASES.waterInspection.contentIds = ["shareHouseContent_theme_01", "shareHouseContent_event_01"];
+  MANAGEMENT_CASES.disasterResponse.contentIds = ["shareHouseContent_theme_06", "shareHouseContent_bossGimmick_06"];
+  MANAGEMENT_CASES.largeNotice.contentIds = ["shareHouseContent_theme_08", "shareHouseContent_notice_09"];
+  MANAGEMENT_CASES.ghostMoveOut.contentIds = ["shareHouseContent_theme_03", "shareHouseContent_event_13"];
+
   // ---------------------------------------------------------------------
   // 8. パッケージC追加分(新要素: 敵AI行動パターン/中ボス2フェーズ拡張/
   //    レアモンスター)。既存の MONSTERS / ENCOUNT_TABLES の値は一切変更せず、
@@ -1669,6 +1692,8 @@
     MAPS,
     SCENARIO_TEXT,
     MANAGEMENT_CASES,
+    SHARE_HOUSE_CONTENT,
+    SHARE_HOUSE_CONTENT_BY_CATEGORY,
     SHOP_INVENTORY,
     INN_PRICES
   };

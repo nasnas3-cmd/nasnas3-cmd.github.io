@@ -225,6 +225,29 @@ html, body {
   display: none !important;
 }
 
+.share-house-content-window {
+  position: fixed;
+  left: 50%;
+  bottom: 7.5rem;
+  width: min(34rem, calc(100vw - 2rem));
+  transform: translateX(-50%);
+  padding: 0.8rem 1rem;
+  z-index: 20;
+  pointer-events: none;
+}
+
+.share-house-content-title {
+  color: #ffe58a;
+  font-weight: 700;
+  margin-bottom: 0.35rem;
+}
+
+.share-house-content-body {
+  color: #f5f0d0;
+  line-height: 1.55;
+  white-space: pre-wrap;
+}
+
 /* ==========================================================================
    DQ風ウィンドウ(白枠・黒背景・二重線)基本クラス
    ========================================================================== */

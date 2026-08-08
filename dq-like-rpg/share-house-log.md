@@ -259,4 +259,12 @@
 
 ## 今後の使い方メモ
 
-上記はあくまで「ネタの種」。実際にシナリオへ組み込む際は、章構成(副管理人の初仕事→設備・契約トラブル→管理AI停止→終わらぬ契約の管理王)の中で、日々のドラマがゲーム進行と戦闘に接続するよう取捨選択・再編集する。
+上記はゲーム内正本へ移行済みの原案台帳である。匿名化テーマ10件と拡大案170件、合計180件を省略せず、`share_house_content.js`の`SHARE_HOUSE_CONTENT`へカテゴリ・台帳番号・解放章・接続種別付きで登録する。
+
+## ゲーム統合台帳
+
+- **正本データ:** `share_house_content.js` → `RPG.shareHouseContentCatalog` → `data.js` → `RPG.data.SHARE_HOUSE_CONTENT`
+- **閲覧画面:** フィールドメニューの「管理記録」。星霜荘到達後に全180件を閲覧可能。
+- **状態:** `flags.shareHouseContentUnlocked`、`flags.shareHouseContentDiscovered`
+- **接続種別:** `world`(町/NPC/掲示物)、`item`(装備)、`battle`(敵/ボスギミック)、`spell`(呪文)、`quest`(イベント)、`ui`(ミニゲーム/実績)、`registry`(台帳として保持)
+- **資料の役割:** このファイルは原案台帳、`SHARE_HOUSE_STORY_IDEAS.md`は採用方針、`DESIGN.md`は仕様、`ROADMAP.md`は進捗を担う。

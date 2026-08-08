@@ -258,7 +258,8 @@ dq-like-rpg/
 ├── index.html   … 画面骨格・Canvas要素・スクリプト読み込み順
 ├── styles.css   … 全体スタイル
 ├── audio.js     … Web Audio BGM/SE
-├── data.js      … 全ゲームデータ
+├── share_house_content.js … シェアハウス台帳180件の正本データ
+├── data.js      … 全ゲームデータとSHARE_HOUSE_CONTENT公開
 ├── engine.js    … コアループ・状態管理・シーン遷移・セーブ
 ├── gfx.js       … タイル/キャラCanvas描画
 ├── map.js       … フィールド/町/ダンジョン・ギミック判定
@@ -270,6 +271,7 @@ dq-like-rpg/
 
 ```html
 <script src="audio.js"></script>
+<script src="share_house_content.js"></script>
 <script src="data.js"></script>
 <script src="engine.js"></script>
 <script src="gfx.js"></script>
@@ -341,13 +343,28 @@ window.RPG = {
 
 ### 12.5 `RPG.ui`(ui.js)
 
-- `RPG.ui.showMessage(text, callback)` - メッセージウィンドウ表示(1文字送り演出)。`battle.js`の`pushLog`からのみ駆動され、戦闘シーンの`update`から毎フレーム呼び出すことはしない(呼ぶと配列を文字列として処理しようとして必ず壊れるため)。
+- `RPG.ui.showMessage(text, callback)` - メッセージウィンドウ表示(1文字送り演出)。`battle.js`の`pushLog`からのみ駆動され、戦闘シーンの`update`から毎フレーム呼び出すことはしない(呼ぶと配列を文字列として処理しようとして必ず壊れるため)。メッセージ速度が早い/普通/遅いでも、Enter/Zで文字送りと自動送り待ちを即時に進められる。
 - `RPG.ui.openMenu(menuType, options)` - `"command" | "spell" | "item" | "shop" | "status"` 等の各種メニューをDOM/Canvasで開く。矢印キー(上下)でselectedIndexを移動、Zキーで決定、Xキーで`options.onCancel`(未指定時はcloseMenu)を実行する。
 - `RPG.ui.closeMenu()`
 - `RPG.ui.renderBattleUI(battleState)` - 戦闘中のHP/MPバー・コマンドウィンドウ描画。`battle.js`の`enter()`とターン解決後にのみ呼び出す。
 - `RPG.ui.openShop(shopId, mode)` - 武器屋/道具屋の売買UI(`mode: "buy" | "sell"`)
 - `RPG.ui.openChurch(churchId)` - 教会メニュー(蘇生/状態回復/転職/仲間並び替え)。並び替え・転職は共通のヘルパー(`openReorderMenu`/`openJobChangeMenu`)を実際に呼び出し、メニュー画面への丸投げはしない。
 - ステータス画面から装備スロット(武器/防具/装飾品)を選び、所持アイテムから装備・解除できる(`openEquipMenu`)。装備した`statBonus`は`battle.js`の`statOf()`経由でダメージ計算に反映される。
+
+## 14. シェアハウス全件コンテンツ統合
+
+`share-house-log.md`は匿名化テーマ10件と拡大案170件、合計180件の原案台帳である。全件を`share_house_content.js`の`RPG.shareHouseContentCatalog`へ構造化し、`data.js`が`RPG.data.SHARE_HOUSE_CONTENT`として公開する。カテゴリ別件数は`theme:10,town:10,item:20,monster:20,npc:20,event:20,bossGimmick:10,spell:20,notice:20,minigame:10,achievement:20`で固定する。
+
+各エントリは`id`、`category`、`sourceCategory`、`title`、`description`、`sourceLine`、`unlockChapter`、`integration`を持つ。既存エンジンに直接接続する案は`world/item/battle/quest/spell/ui`として扱い、独立した新システムが必要な案も`registry`として欠落なく管理記録へ載せる。
+
+### 管理記録API
+
+- `RPG.engine.discoverShareHouseContent(contentId)` - 1件を発見済みにする。重複追加しない。
+- `RPG.engine.unlockShareHouseContent()` - 星霜荘到達時に180件を閲覧可能にする。
+- `RPG.engine.getShareHouseContent()` - 発見状態付きの全件一覧を返す。
+- フィールドメニューの「管理記録」からカテゴリ→項目→詳細を開く。星霜荘到達前は未発見内容を伏せる。
+
+既存4管理案件は関連する台帳IDを参照し、受注/報告で発見状態へ反映する。発見配列`flags.shareHouseContentDiscovered`と解放フラグ`flags.shareHouseContentUnlocked`は既存セーブへ追加し、旧セーブでは既定値を補う。
 
 ---
 
@@ -362,8 +379,8 @@ window.RPG = {
    ↓(エンカウント)          ↓(エンカウント)
         戦闘シーン(勝利/敗北で元シーンか町へ復帰)
 
-フィールド/町/ダンジョン中いつでも「メニュー」ボタンで
-  ステータス確認/どうぐ確認/隊列変更/セーブ を開ける
+ フィールド/町/ダンジョン中いつでも「メニュー」ボタンで
+   ステータス確認/どうぐ確認/隊列変更/管理案件/管理記録/セーブ を開ける
 ```
 
 ---

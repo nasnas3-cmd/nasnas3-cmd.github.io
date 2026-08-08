@@ -95,10 +95,17 @@
     <div id="inn-content" class="church-content"></div>
   </div>
 
+  <!-- シェアハウス管理記録 -->
+  <div id="share-house-content-window" class="dq-window share-house-content-window hidden" aria-live="polite">
+    <div id="share-house-content-title" class="share-house-content-title"></div>
+    <div id="share-house-content-body" class="share-house-content-body"></div>
+  </div>
+
 </div>
 
-<!-- スクリプト読み込み順: audio → data → engine → gfx → map → battle → ui -->
+<!-- スクリプト読み込み順: audio → share-house-content → data → engine → gfx → map → battle → ui -->
 <script src="audio.js"></script>
+<script src="share_house_content.js"></script>
 <script src="data.js"></script>
 <script src="engine.js"></script>
 <script src="gfx.js"></script>

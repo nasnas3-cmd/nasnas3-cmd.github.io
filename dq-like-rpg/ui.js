@@ -56,6 +56,10 @@
     els.innWindow = document.getElementById("inn-window");
     els.innContent = document.getElementById("inn-content");
 
+    els.shareHouseContentWindow = document.getElementById("share-house-content-window");
+    els.shareHouseContentTitle = document.getElementById("share-house-content-title");
+    els.shareHouseContentBody = document.getElementById("share-house-content-body");
+
     els.btnMenuOpen = document.getElementById("btn-menu-open");
   }
 
@@ -128,6 +132,7 @@
   function processMessageQueue() {
     if (ui.messageQueue.length === 0) {
       ui.messageBusy = false;
+      clearMessageAdvanceWait();
       // キューが空になった = 表示すべき会話/メッセージがもう無いということなので、
       // メッセージウィンドウを閉じてフィールド操作に戻す。
       // (これが無いと、NPCとの会話が最終ページまで進んでも
@@ -144,7 +149,7 @@
         processMessageQueue();
       };
       if (isBattleAutoAdvance()) {
-        window.setTimeout(advance, MESSAGE_MODES[ui.messageMode].advanceMs);
+        scheduleMessageAdvance(advance, MESSAGE_MODES[ui.messageMode].advanceMs);
       } else {
         // フィールド会話とマニュアル設定は決定待ち。
         waitForAdvance(advance);
@@ -224,6 +229,7 @@
 
   function hideMessage() {
     if (ui._typeTimer) clearTimeout(ui._typeTimer);
+    clearMessageAdvanceWait();
     els.messageWindow.classList.add("hidden");
     els.messageText.textContent = "";
     ui.messageQueue = [];
@@ -1619,6 +1625,7 @@
   // メニューボタンのクリックと、engine.js が仲介するMキーショートカットの
   // 両方から呼べるよう名前付き関数として切り出す。
   function openFieldMainMenu() {
+    if (els.shareHouseContentWindow) els.shareHouseContentWindow.classList.add("hidden");
     openMenu("command", {
       items: [
         { label: "ステータス", value: "status" },
@@ -1629,6 +1636,7 @@
         { label: "隊列変更", value: "reorder" },
         { label: "管理案件", value: "management" },
         { label: "住人の信頼", value: "trust" },
+        { label: "管理記録", value: "share-house-content" },
         { label: "戦闘メッセージ速度", value: "message-speed" },
         { label: "セーブ", value: "save" },
         { label: "そうさほうほう", value: "howto" },
@@ -1661,6 +1669,8 @@
           openManagementCaseMenu();
         } else if (item.value === "trust") {
           openResidentTrustMenu();
+        } else if (item.value === "share-house-content") {
+          openShareHouseContentMenu();
         } else if (item.value === "message-speed") {
           openMessageSpeedMenu();
         } else if (item.value === "howto") {
@@ -1681,6 +1691,45 @@
         closeMenu();
       },
     });
+  }
+
+  function clearMessageAdvanceWait() {
+    if (ui._messageAdvanceTimer != null) {
+      window.clearTimeout(ui._messageAdvanceTimer);
+      ui._messageAdvanceTimer = null;
+    }
+    if (ui._messageAdvanceHandler) {
+      document.removeEventListener("keydown", ui._messageAdvanceHandler);
+      els.messageWindow.removeEventListener("click", ui._messageAdvanceHandler);
+      ui._messageAdvanceHandler = null;
+    }
+  }
+
+  function scheduleMessageAdvance(onAdvance, delayMs) {
+    clearMessageAdvanceWait();
+    let done = false;
+
+    function advanceNow() {
+      if (done) return;
+      done = true;
+      clearMessageAdvanceWait();
+      onAdvance();
+    }
+
+    function onAdvanceKey(e) {
+      if (e.type === "click" || e.key === " " || isConfirmKey(e) || isCancelKey(e)) {
+        if (e.type === "keydown") {
+          e.preventDefault();
+          e.stopPropagation();
+        }
+        advanceNow();
+      }
+    }
+
+    ui._messageAdvanceHandler = onAdvanceKey;
+    document.addEventListener("keydown", onAdvanceKey);
+    els.messageWindow.addEventListener("click", onAdvanceKey);
+    ui._messageAdvanceTimer = window.setTimeout(advanceNow, delayMs);
   }
 
   function openMessageSpeedMenu() {
@@ -1776,6 +1825,93 @@
       },
       onCancel: function () {
         openFieldMainMenu();
+      },
+    });
+  }
+
+  const SHARE_HOUSE_CONTENT_CATEGORY_LABELS = {
+    theme: "匿名化テーマ",
+    town: "町・地名",
+    item: "武器・防具アイテム",
+    monster: "モンスター・敵キャラ",
+    npc: "NPCセリフ・キャラクター",
+    event: "小イベント・サブクエスト",
+    bossGimmick: "メインクエスト・ボス戦ギミック",
+    spell: "呪文・必殺技名",
+    notice: "小道具・貼り紙/通知書アイテム",
+    minigame: "ミニゲーム・謎解き",
+    achievement: "ランニングギャグ・実績/称号",
+  };
+
+  function renderShareHouseContentPanel(title, body) {
+    if (!els.shareHouseContentTitle || !els.shareHouseContentBody) return;
+    els.shareHouseContentTitle.textContent = title;
+    els.shareHouseContentBody.textContent = body;
+    if (els.shareHouseContentWindow) els.shareHouseContentWindow.classList.remove("hidden");
+  }
+
+  function openShareHouseContentMenu() {
+    const entries = window.RPG.engine && window.RPG.engine.getShareHouseContent
+      ? window.RPG.engine.getShareHouseContent() : [];
+    const groups = {};
+    entries.forEach(function (entry) {
+      groups[entry.category] = groups[entry.category] || [];
+      groups[entry.category].push(entry);
+    });
+    const items = Object.keys(SHARE_HOUSE_CONTENT_CATEGORY_LABELS).map(function (category) {
+      const categoryEntries = groups[category] || [];
+      const found = categoryEntries.filter(function (entry) { return entry.discovered; }).length;
+      return {
+        label: SHARE_HOUSE_CONTENT_CATEGORY_LABELS[category] + "　" + found + "/" + categoryEntries.length,
+        value: category,
+        categoryEntries: categoryEntries,
+      };
+    });
+    items.push({ label: "もどる", value: "back" });
+    openMenu("command", {
+      items: items,
+      onSelect: function (item) {
+        if (item.value === "back") {
+          openFieldMainMenu();
+          return;
+        }
+        openShareHouseContentCategoryMenu(item.value, item.categoryEntries);
+      },
+      onCancel: function () {
+        openFieldMainMenu();
+      },
+    });
+  }
+
+  function openShareHouseContentCategoryMenu(category, entries) {
+    const label = SHARE_HOUSE_CONTENT_CATEGORY_LABELS[category] || category;
+    const items = entries.map(function (entry) {
+      return {
+        label: (entry.discovered ? "✓ " : "？ ") + (entry.discovered ? entry.title : "未発見の記録"),
+        value: entry.id,
+        entry: entry,
+      };
+    });
+    items.push({ label: "もどる", value: "back" });
+    openMenu("command", {
+      items: items,
+      onSelect: function (item) {
+        if (item.value === "back") {
+          openShareHouseContentMenu();
+          return;
+        }
+        const entry = item.entry;
+        closeMenu();
+        if (!entry.discovered) {
+          renderShareHouseContentPanel(label, "シェアハウス到達後に開く管理記録です。\n" + entry.id);
+          showMessage("この記録は　まだ　読めない。\n星霜荘へ向かい、住人の声を集めよう。");
+          return;
+        }
+        renderShareHouseContentPanel(label + "　" + entry.title, entry.description);
+        showMessage(label + "\n" + entry.title + "\n" + entry.description + "\n台帳番号: " + entry.sourceLine);
+      },
+      onCancel: function () {
+        openShareHouseContentMenu();
       },
     });
   }
@@ -2379,6 +2515,7 @@
       return !!ui.messageBusy;
     },
     openFieldMenu: openFieldMainMenu,
+    openShareHouseContentMenu: openShareHouseContentMenu,
     // C-7: レベルアップ演出(engine.js の gainExp() から呼ばれる)。
     showLevelUp: showLevelUp,
     showFloatingText: showFloatingText,

@@ -392,9 +392,9 @@
     mapState.pressedKeys = {};
     mapState.stepsSinceEncounter = 0;
 
-    // マップ遷移時は隊列(仲間)全員を主人公の位置に集合させる。
-    // 履歴を主人公の現在地だけで埋め直すことで、前マップの移動軌跡を引きずらない。
-    mapState.trail = [{ x: mapState.playerX, y: mapState.playerY }];
+    // マップ遷移時は前マップの移動軌跡を引きずらず、現在地から
+    // 通行可能な隣接マスへ隊列履歴を再構成する。
+    mapState.trail = initializeFollowerTrail(mapState.playerX, mapState.playerY);
 
     updateCamera();
     attachKeyListeners();
@@ -413,12 +413,37 @@
       }
       if (mapId === "shareHouseArea" && RPG.state.flags && !RPG.state.flags.shareHouseIntroSeen) {
         RPG.state.flags.shareHouseIntroSeen = true;
+        if (RPG.engine && typeof RPG.engine.unlockShareHouseContent === "function") {
+          RPG.engine.unlockShareHouseContent();
+        }
         const lines = RPG.data && RPG.data.SCENARIO_TEXT && RPG.data.SCENARIO_TEXT.chapterShareHouse;
         if (RPG.ui && typeof RPG.ui.showMessage === "function" && Array.isArray(lines)) {
           lines.forEach(function (line) { RPG.ui.showMessage(line); });
         }
       }
     }
+  }
+
+  function initializeFollowerTrail(x, y) {
+    const trail = [{ x: x, y: y }];
+    const party = (RPG.state && RPG.state.party) || [];
+    const followerCount = Math.max(0, Math.min(maxFollowerCount(), party.length - 1));
+    const candidates = [
+      { dx: 0, dy: 1 },
+      { dx: -1, dy: 0 },
+      { dx: 1, dy: 0 },
+      { dx: 0, dy: -1 },
+    ];
+
+    for (let i = 0; i < followerCount; i++) {
+      const anchor = trail[trail.length - 1];
+      const candidate = candidates
+        .map((offset) => ({ x: anchor.x + offset.dx, y: anchor.y + offset.dy }))
+        .find((pos) => !trail.some((entry) => isSameTile(entry, pos)) && isWalkable(pos.x, pos.y));
+      if (!candidate) break;
+      trail.push(candidate);
+    }
+    return trail;
   }
 
   // ------------------------------------------------------------------
@@ -503,6 +528,15 @@
   function findLockedDoorDef(x, y) {
     const doors = (mapState.mapDef && mapState.mapDef.lockedDoors) || [];
     return doors.find(function (d) { return d.x === x && d.y === y; }) || null;
+  }
+
+  function isWarpRequirementMet(warp) {
+    if (!warp) return false;
+    if (warp.requiresOpenedDoor) {
+      const door = warp.requiresOpenedDoor;
+      if (!isDoorOpened(door.x, door.y)) return false;
+    }
+    return true;
   }
 
   function tryUnlockDoor(x, y) {
@@ -707,15 +741,7 @@
       // 同じマスへの往復(その場足踏み)で履歴が無駄に伸びないよう、
       // 直前の記録と同座標でなければ追加する。
       const lastTrail = mapState.trail[0];
-      const beforeLastTrail = mapState.trail[1];
-      if (beforeLastTrail && beforeLastTrail.x === mapState.playerX && beforeLastTrail.y === mapState.playerY) {
-        // 直前の一歩をそのまま打ち消す後退(行って戻る操作)。ここでtrail[0]を
-        // 残したまま新規プッシュすると、trail配列が A,B,A,B... のように周期的な
-        // パターンで伸び続け、2マス間隔で追従する隊列メンバー同士が同じ座標を
-        // 指してしまい、フィールド上でキャラが重なって表示される不具合になる。
-        // 一歩戻っただけなので、直前の記録を巻き戻して重複を防ぐ。
-        mapState.trail.shift();
-      } else if (!lastTrail || lastTrail.x !== mapState.playerX || lastTrail.y !== mapState.playerY) {
+      if (!lastTrail || lastTrail.x !== mapState.playerX || lastTrail.y !== mapState.playerY) {
         mapState.trail.unshift({ x: mapState.playerX, y: mapState.playerY });
         if (mapState.trail.length > TRAIL_MAX_LENGTH) {
           mapState.trail.length = TRAIL_MAX_LENGTH;
@@ -816,8 +842,10 @@
     const warp = findWarpAt(px, py);
     if (!warp) {
       const blockedWarp = mapState.warps.find(function (w) {
-        return w.fromX === px && w.fromY === py && w.requiresChapter &&
+        if (w.fromX !== px || w.fromY !== py) return false;
+        const chapterBlocked = w.requiresChapter &&
           (!RPG.state || !RPG.state.flags || (RPG.state.flags.chapter || 1) < w.requiresChapter);
+        return chapterBlocked || !isWarpRequirementMet(w);
       });
       if (blockedWarp && RPG.ui && typeof RPG.ui.showMessage === "function") {
         RPG.ui.showMessage(blockedWarp.message || "まだ　この先へは　進めない。");
@@ -950,7 +978,8 @@
     return mapState.warps.find((w) => w.fromX === x && w.fromY === y &&
       (!w.requiresChapter || chapter >= w.requiresChapter) &&
       (!w.requiresDefeatedBoss || defeatedBosses.indexOf(w.requiresDefeatedBoss) !== -1) &&
-      (!w.requiresBossAlive || defeatedBosses.indexOf(w.requiresBossAlive) === -1)) || null;
+      (!w.requiresBossAlive || defeatedBosses.indexOf(w.requiresBossAlive) === -1) &&
+      isWarpRequirementMet(w)) || null;
   }
 
   function doWarp(warp) {
@@ -1269,6 +1298,22 @@
     return maxParty - 1;
   }
 
+  function isSameTile(a, b) {
+    return !!a && !!b && a.x === b.x && a.y === b.y;
+  }
+
+  // 隊列キャラが主人公や前方の隊列キャラと同じ履歴座標を使わないようにする。
+  // ワープ直後・ロード直後・移動アニメーション中の重複履歴が残っていても、
+  // 同じマスへSVGを重ねて描画せず、履歴が有効になるまで非表示にする。
+  function isValidFollowerTrailPosition(trail, trailIndex) {
+    if (!Array.isArray(trail) || trailIndex < 1 || !trail[trailIndex]) return null;
+    const pos = trail[trailIndex];
+    for (let i = 0; i < trailIndex; i++) {
+      if (isSameTile(pos, trail[i])) return null;
+    }
+    return pos;
+  }
+
   // 隊列(2人目以降の仲間)のSVGスプライト同期。主人公の移動履歴(trail)を
   // 1マスずつ遅れて辿らせる。衝突判定は主人公のみで行うため、隊列メンバーは
   // タイルの通行可否を無視して見た目上追従するだけの純粋な演出。
@@ -1277,9 +1322,9 @@
     // party[0] は主人公自身なので、2人目(index 1)以降が隊列表示の対象。
     const followers = party.slice(1);
 
-    // 主人公の現在の1マス移動の進行度(0〜1)。移動中でなければ1(=移動完了)扱いにして、
-    // 隊列メンバーもtrail上の直近マスにきっちり静止させる。
-    const t = mapState.isMoving ? Math.min(1, mapState.moveElapsed / MOVE_DURATION) : 1;
+    // 停止中は仲間自身の履歴座標(trail[i+1])に置く。1にすると
+    // prevPos(主人公側の履歴)へ補間し、主人公と同じマスに重なる。
+    const t = mapState.isMoving ? Math.min(1, mapState.moveElapsed / MOVE_DURATION) : 0;
 
     for (let i = 0; i < maxFollowerCount(); i++) {
       const el = getFollowerSpriteEl(i);
@@ -1287,7 +1332,7 @@
       const member = followers[i];
       // i=0(2人目)は1マス遅れ(trail[1]→trail[0]方向)、i=1(3人目)は2マス遅れ…
       const trailIndex = i + 1;
-      const pos = mapState.trail[trailIndex];
+      const pos = isValidFollowerTrailPosition(mapState.trail, trailIndex);
       if (!member || !pos) {
         // 仲間がいない/履歴がまだ足りない(移動直後・マップ進入直後)場合は非表示
         el.classList.add("hidden");
@@ -1298,7 +1343,15 @@
       // prevPos(1マス手前=進行方向側の履歴)へ向けて、主人公の移動進行度tで補間する。
       let renderX = pos.x;
       let renderY = pos.y;
-      if (prevPos) {
+      // 主人公が後退して隊列キャラの現在地へ入る場合、双方を同時に
+      // 反対方向へ補間すると移動途中で同じ座標を通過する。主人公の
+      // 移動完了まで隊列キャラを待機させ、完了後に次の履歴へ進める。
+      const followerTargetIsHeroDestination = mapState.isMoving &&
+        mapState.moveToX === pos.x && mapState.moveToY === pos.y;
+      if (followerTargetIsHeroDestination) {
+        renderX = pos.x;
+        renderY = pos.y;
+      } else if (prevPos) {
         renderX = pos.x + (prevPos.x - pos.x) * t;
         renderY = pos.y + (prevPos.y - pos.y) * t;
       }

@@ -46,6 +46,8 @@
       managementCasesReady: [],
       residentTrust: {},
       communityTrust: 0,
+      shareHouseContentUnlocked: false,
+      shareHouseContentDiscovered: [],
       gameCleared: false,
       postgameUnlocked: false,
       postgameStarted: false,
@@ -647,6 +649,8 @@
       managementCasesReady: [],
       residentTrust: {},
       communityTrust: 0,
+      shareHouseContentUnlocked: false,
+      shareHouseContentDiscovered: [],
       gameCleared: false,
       postgameUnlocked: false,
       postgameStarted: false,
@@ -866,6 +870,7 @@
         isManagementCaseSolved(caseId) || isManagementCaseActive(caseId)) return false;
     RPG.state.flags.managementCasesActive = RPG.state.flags.managementCasesActive || [];
     RPG.state.flags.managementCasesActive.push(caseId);
+    discoverManagementCaseContent(caseDef);
     return true;
   }
 
@@ -882,6 +887,8 @@
     const cases = (RPG.data && RPG.data.MANAGEMENT_CASES) || {};
     const caseDef = cases[caseId];
     if (!caseDef || isManagementCaseSolved(caseId) || !isManagementCaseActive(caseId)) return null;
+
+    discoverManagementCaseContent(caseDef);
 
     RPG.state.flags.managementCasesSolved = RPG.state.flags.managementCasesSolved || [];
     RPG.state.flags.managementCasesSolved.push(caseId);
@@ -914,6 +921,45 @@
     return Object.assign({}, (RPG.state.flags && RPG.state.flags.residentTrust) || {}, {
       community: (RPG.state.flags && RPG.state.flags.communityTrust) || 0,
     });
+  }
+
+  function getShareHouseContentCatalog() {
+    return (RPG.data && Array.isArray(RPG.data.SHARE_HOUSE_CONTENT))
+      ? RPG.data.SHARE_HOUSE_CONTENT
+      : [];
+  }
+
+  function discoverShareHouseContent(contentId) {
+    const catalog = getShareHouseContentCatalog();
+    if (!catalog.some(function (entry) { return entry.id === contentId; })) return false;
+    RPG.state.flags.shareHouseContentDiscovered = RPG.state.flags.shareHouseContentDiscovered || [];
+    if (RPG.state.flags.shareHouseContentDiscovered.indexOf(contentId) !== -1) return false;
+    RPG.state.flags.shareHouseContentDiscovered.push(contentId);
+    return true;
+  }
+
+  function unlockShareHouseContent() {
+    RPG.state.flags.shareHouseContentUnlocked = true;
+    getShareHouseContentCatalog().forEach(function (entry) {
+      discoverShareHouseContent(entry.id);
+    });
+    return RPG.state.flags.shareHouseContentDiscovered.length;
+  }
+
+  function getShareHouseContent() {
+    const flags = RPG.state.flags || {};
+    const discovered = flags.shareHouseContentDiscovered || [];
+    return getShareHouseContentCatalog().map(function (entry) {
+      const isDiscovered = flags.shareHouseContentUnlocked || discovered.indexOf(entry.id) !== -1;
+      return Object.assign({}, entry, {
+        discovered: isDiscovered,
+        locked: !isDiscovered,
+      });
+    });
+  }
+
+  function discoverManagementCaseContent(caseDef) {
+    (caseDef && caseDef.contentIds || []).forEach(discoverShareHouseContent);
   }
 
   // ------------------------------------------------------------------
@@ -1004,6 +1050,9 @@
       RPG.state.flags.residentTrust = RPG.state.flags.residentTrust && typeof RPG.state.flags.residentTrust === "object"
         ? RPG.state.flags.residentTrust : {};
       RPG.state.flags.communityTrust = Number(RPG.state.flags.communityTrust) || 0;
+      RPG.state.flags.shareHouseContentUnlocked = !!RPG.state.flags.shareHouseContentUnlocked;
+      RPG.state.flags.shareHouseContentDiscovered = Array.isArray(RPG.state.flags.shareHouseContentDiscovered)
+        ? RPG.state.flags.shareHouseContentDiscovered : [];
       RPG.state.flags.gameCleared = !!RPG.state.flags.gameCleared;
       RPG.state.flags.postgameUnlocked = !!RPG.state.flags.postgameUnlocked;
       RPG.state.flags.postgameStarted = !!RPG.state.flags.postgameStarted;
@@ -1072,6 +1121,9 @@
     completeManagementCase: completeManagementCase,
     getManagementCases: getManagementCases,
     getResidentTrust: getResidentTrust,
+    discoverShareHouseContent: discoverShareHouseContent,
+    unlockShareHouseContent: unlockShareHouseContent,
+    getShareHouseContent: getShareHouseContent,
     canRecruit: canRecruit,
     recruitMember: recruitMember,
     isNpcRecruited: isNpcRecruited,
